@@ -22,7 +22,7 @@ void * receive_msg(void * arg){
 void * send_reply(void * arg){
     char msg[1024];
     while(1){
-        printf("Enter the Client Message: ");
+        printf("Enter the Client Message: \n");
         fgets(msg,sizeof(msg),stdin);
         msg[strcspn(msg,"\n")]=0;
         if (strcmp(msg, "exit") == 0) break;
@@ -43,7 +43,7 @@ int main() {
     pthread_create(&rec_msg,NULL,receive_msg,NULL);
     pthread_create(&send_msg,NULL,send_reply,NULL);
 
-    pthread_join(send_msg,NULL);
+    pthread_join(rec_msg,NULL);
     return 0;
 }
 

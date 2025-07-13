@@ -23,6 +23,7 @@ void * handle_client(void * arg){
         fgets(bytes_send,sizeof(bytes_send),stdin);
         bytes_send[strcspn(bytes_send,"\n")]=0;
         send(client,bytes_send,strlen(bytes_send),0);
+        printf("Message sent to client.\n");
     }
 
     close(client);
