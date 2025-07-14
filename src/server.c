@@ -1,93 +1,68 @@
 #include "server.h"
 #include <pthread.h>
 
+void *receive_from_client(void *arg) {
+    int client = *(int *)arg;
+    char buff[1024];
+    while (1) {
+        ssize_t bytes_read = recv(client, buff, sizeof(buff) - 1, 0);
+        if (bytes_read <= 0) {
+            printf("Client disconnected.\n");
+            break;
+        }
+        buff[bytes_read] = '\0';
+        printf("\nClient Message: %s\n", buff);
+    }
+    close(client);
+    exit(0);
+    return NULL;
+}
 
-void * handle_client(void * arg){
+void *send_to_client(void *arg) {
+    int client = *(int *)arg;
+    char msg[1024];
+    while (1) {
+        printf("Enter the server message: ");
+        fgets(msg, sizeof(msg), stdin);
+        msg[strcspn(msg, "\n")] = 0;
+        if (strcmp(msg, "exit") == 0) break;
+        send(client, msg, strlen(msg), 0);
+    }
+    close(client);
+    exit(0);
+    return NULL;
+}
+
+void *handle_client(void *arg) {
     int client = *(int *)arg;
     free(arg);
 
-    char buff[1024];
-    while(1){
-        ssize_t bytes_read = recv(client,buff,sizeof(buff)-1,0);
+    pthread_t recv_thread, send_thread;
+    pthread_create(&recv_thread, NULL, receive_from_client, &client);
+    pthread_create(&send_thread, NULL, send_to_client, &client);
 
-        if(bytes_read<=0){
-            printf("Client Disconnected.\n");
-            break;
-        }
+    pthread_join(recv_thread, NULL);
+    pthread_join(send_thread, NULL);
 
-        buff[bytes_read]='\0';
-        printf("Client Message: %s\n",buff);
-
-        char bytes_send[1024];
-        printf("Enter the server message: ");
-        fgets(bytes_send,sizeof(bytes_send),stdin);
-        bytes_send[strcspn(bytes_send,"\n")]=0;
-        send(client,bytes_send,strlen(bytes_send),0);
-        printf("Message sent to client.\n");
-    }
-
-    close(client);
     return NULL;
-
 }
 
-int main(){
+int main() {
     int server_fd = create_server_socket();
     bind_server_socket(server_fd);
     listen_on_server_socket(server_fd);
     printf("Server is listening...\n");
 
     while (1) {
-        int* client = malloc(sizeof(int));
+        int *client = malloc(sizeof(int));
         *client = accept_client_connection(server_fd);
         printf("Client connected.\n");
 
         pthread_t client_thread;
         pthread_create(&client_thread, NULL, handle_client, client);
-        pthread_detach(client_thread); 
+        pthread_detach(client_thread);
     }
 
     close(server_fd);
     return 0;
 }
-
-
-// int main() {
-//     int server_fd=create_server_socket();
-
-//     bind_server_socket(server_fd);
-//     listen_on_server_socket(server_fd);
-
-//     printf("Server is listening..\n");
-
-//     int client=accept_client_connection(server_fd);
-//     printf("Client Connected\n");
-
-//     char buff[1024]={0};
-//     ssize_t bytes_read=recv(client,buff,sizeof(buff)-1,0);
-//     if(bytes_read>0){
-//         buff[bytes_read]='\0';
-//         printf("Message from Client : %s\n",buff);
-//     }else{
-//         printf("Failed to receive message from client.\n");
-//         close(client);
-//         close(server_fd);
-//         return 1;
-//     }
-
-//     char res[1024];
-//     printf("Enter the message to sent to client : ");
-//     fgets(res,sizeof(res),stdin);
-//     res[strcspn(res,"\n")]=0;
-
-//     ssize_t sent_msg=send(client,res,strlen(res),0);
-//     if(sent_msg==-1){
-//         perror("Failed to sent response to client");
-//     }else{
-//         printf("Message sent successfully to client.\n");
-//     }
-//     close(client);
-//     close(server_fd);
-
-//     return 0;
-// }
